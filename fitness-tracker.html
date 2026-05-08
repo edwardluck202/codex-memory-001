@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>健身记录</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --ink: #1d1d1f;
+      --muted: #6e6e73;
+      --line: rgba(0, 0, 0, 0.08);
+      --panel: rgba(255, 255, 255, 0.78);
+      --soft: rgba(0, 0, 0, 0.045);
+      --blue: #007aff;
+      --green: #34c759;
+      --orange: #ff9500;
+      --red: #ff3b30;
+      --shadow: 0 24px 70px rgba(31, 35, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.96), transparent 26%),
+        linear-gradient(135deg, #fbfbfd 0%, #eef2f7 54%, #e5e9f0 100%);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 28px auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 0;
+    }
+
+    .icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      background: linear-gradient(160deg, #0a84ff, #32d74b);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 14px 30px rgba(0, 122, 255, 0.22);
+      color: #fff;
+    }
+
+    .icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 27px;
+      font-weight: 800;
+    }
+
+    .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 550;
+    }
+
+    .today {
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+    }
+
+    .form-card {
+      padding: 22px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 17px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .field {
+      margin-bottom: 13px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    input,
+    select {
+      width: 100%;
+      height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      outline: 0;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      padding: 0 13px;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(0, 122, 255, 0.55);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .submit {
+      width: 100%;
+      height: 52px;
+      border: 0;
+      border-radius: 16px;
+      margin-top: 6px;
+      background: #1d1d1f;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 16px 34px rgba(29, 29, 31, 0.19);
+      transition: transform 150ms ease, opacity 150ms ease;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .content {
+      display: grid;
+      gap: 18px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.64);
+    }
+
+    .metric small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 9px;
+      font-size: 25px;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history {
+      padding: 18px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      width: 292px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .tab {
+      height: 34px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      box-shadow: 0 7px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .clear {
+      height: 36px;
+      border: 1px solid rgba(255, 59, 48, 0.2);
+      border-radius: 999px;
+      background: rgba(255, 59, 48, 0.08);
+      color: var(--red);
+      padding: 0 13px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .calendar {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .calendar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .calendar-title {
+      font-size: 15px;
+      font-weight: 850;
+    }
+
+    .calendar-meta {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .calendar-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .calendar-grid.day,
+    .calendar-grid.week {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .calendar-grid.month {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .calendar-grid.year {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .weekday {
+      color: var(--muted);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .calendar-cell {
+      min-height: 82px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .calendar-cell.muted {
+      opacity: 0.42;
+    }
+
+    .calendar-cell.has-data {
+      border-color: rgba(0, 122, 255, 0.25);
+      background: linear-gradient(180deg, rgba(0, 122, 255, 0.12), rgba(255, 255, 255, 0.58));
+    }
+
+    .cell-date {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .cell-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--blue);
+      opacity: 0;
+    }
+
+    .has-data .cell-dot {
+      opacity: 1;
+    }
+
+    .cell-body {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .groups {
+      display: grid;
+      gap: 12px;
+    }
+
+    .group {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.38);
+    }
+
+    .group-title {
+      font-weight: 850;
+    }
+
+    .group-total {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .entry {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 13px 16px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.055);
+    }
+
+    .entry:last-child {
+      border-bottom: 0;
+    }
+
+    .entry-main {
+      min-width: 0;
+    }
+
+    .entry-top {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .part {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(0, 122, 255, 0.1);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .exercise {
+      font-size: 15px;
+      font-weight: 850;
+    }
+
+    .detail {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .volume {
+      text-align: right;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .delete {
+      margin-top: 5px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .empty {
+      padding: 42px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    @media (max-width: 880px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .form-card {
+        position: static;
+      }
+
+      .summary {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shell {
+        width: min(100vw - 20px, 430px);
+        margin: 16px auto;
+      }
+
+      header,
+      .toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .tabs {
+        width: 100%;
+      }
+
+      .calendar-grid.day,
+      .calendar-grid.week,
+      .calendar-grid.month {
+        gap: 6px;
+      }
+
+      .calendar-grid.year {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .calendar-cell {
+        min-height: 72px;
+        padding: 9px;
+      }
+
+      .summary,
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .entry {
+        grid-template-columns: 1fr;
+      }
+
+      .volume {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 13h14M3.5 10.5v5M20.5 10.5v5M8 9v8M16 9v8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>健身记录</h1>
+          <div class="sub">记录部位、动作、次数、重量，并按周月年回看</div>
+        </div>
+      </div>
+      <div class="today" id="today"></div>
+    </header>
+
+    <div class="layout">
+      <section class="panel form-card">
+        <div class="panel-title">
+          <h2>新增训练</h2>
+          <div class="hint">本地自动保存</div>
+        </div>
+
+        <form id="workoutForm">
+          <div class="field">
+            <label for="date">日期</label>
+            <input id="date" type="date" required>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="part">健身部位</label>
+              <select id="part" required>
+                <option value="胸">胸</option>
+                <option value="背">背</option>
+                <option value="肩">肩</option>
+                <option value="腿">腿</option>
+                <option value="手臂">手臂</option>
+                <option value="核心">核心</option>
+                <option value="有氧">有氧</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="exercise">动作</label>
+              <input id="exercise" list="exerciseList" placeholder="卧推 / 深蹲" required>
+              <datalist id="exerciseList">
+                <option value="杠铃卧推"></option>
+                <option value="哑铃卧推"></option>
+                <option value="深蹲"></option>
+                <option value="硬拉"></option>
+                <option value="引体向上"></option>
+                <option value="坐姿划船"></option>
+                <option value="肩推"></option>
+                <option value="二头弯举"></option>
+              </datalist>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field">
+              <label for="sets">组数</label>
+              <input id="sets" type="number" min="1" step="1" value="4" required>
+            </div>
+            <div class="field">
+              <label for="reps">每组次数</label>
+              <input id="reps" type="number" min="1" step="1" value="10" required>
+            </div>
+            <div class="field">
+              <label for="weight">重量 kg</label>
+              <input id="weight" type="number" min="0" step="0.5" value="20" required>
+            </div>
+          </div>
+
+          <button class="submit" type="submit">保存记录</button>
+        </form>
+      </section>
+
+      <div class="content">
+        <section class="summary">
+          <div class="metric">
+            <small>训练次数</small>
+            <strong id="metricSessions">0</strong>
+          </div>
+          <div class="metric">
+            <small>动作数量</small>
+            <strong id="metricExercises">0</strong>
+          </div>
+          <div class="metric">
+            <small>总训练量 kg</small>
+            <strong id="metricVolume">0</strong>
+          </div>
+          <div class="metric">
+            <small>最高单组 kg</small>
+            <strong id="metricMax">0</strong>
+          </div>
+        </section>
+
+        <section class="panel history">
+          <div class="toolbar">
+            <div>
+              <h2>历史查看</h2>
+              <div class="hint" id="rangeLabel">按日历日查看</div>
+            </div>
+            <div class="tabs" role="tablist" aria-label="历史范围">
+              <button class="tab active" data-range="day" type="button">日</button>
+              <button class="tab" data-range="week" type="button">周</button>
+              <button class="tab" data-range="month" type="button">月</button>
+              <button class="tab" data-range="year" type="button">年</button>
+            </div>
+            <button class="clear" id="clearAll" type="button">清空</button>
+          </div>
+
+          <div class="calendar" id="calendar"></div>
+          <div class="groups" id="groups"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const storeKey = "appleFitnessRecords";
+    const form = document.getElementById("workoutForm");
+    const calendarEl = document.getElementById("calendar");
+    const groupsEl = document.getElementById("groups");
+    const dateEl = document.getElementById("date");
+    const tabs = document.querySelectorAll(".tab");
+    const rangeLabel = document.getElementById("rangeLabel");
+    const today = new Date();
+
+    let records = JSON.parse(localStorage.getItem(storeKey) || "[]");
+    let range = "day";
+
+    document.getElementById("today").textContent = new Intl.DateTimeFormat("zh-CN", {
+      month: "long",
+      day: "numeric",
+      weekday: "long"
+    }).format(today);
+
+    dateEl.value = toISODate(today);
+
+    function toISODate(date) {
+      const offset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+    }
+
+    function save() {
+      localStorage.setItem(storeKey, JSON.stringify(records));
+    }
+
+    function dateFromISO(dateString) {
+      return new Date(`${dateString}T00:00:00`);
+    }
+
+    function addDays(date, days) {
+      const next = new Date(date);
+      next.setDate(next.getDate() + days);
+      return next;
+    }
+
+    function sameMonth(a, b) {
+      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+    }
+
+    function weekKey(dateString) {
+      const date = dateFromISO(dateString);
+      const day = date.getDay() || 7;
+      date.setDate(date.getDate() + 4 - day);
+      const yearStart = new Date(date.getFullYear(), 0, 1);
+      const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+      return `${date.getFullYear()} 第 ${String(week).padStart(2, "0")} 周`;
+    }
+
+    function monthKey(dateString) {
+      const date = dateFromISO(dateString);
+      return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月`;
+    }
+
+    function yearKey(dateString) {
+      return `${dateFromISO(dateString).getFullYear()} 年`;
+    }
+
+    function groupKey(record) {
+      if (range === "day") return record.date;
+      if (range === "year") return yearKey(record.date);
+      if (range === "month") return monthKey(record.date);
+      return weekKey(record.date);
+    }
+
+    function volume(record) {
+      return Number(record.sets) * Number(record.reps) * Number(record.weight);
+    }
+
+    function renderMetrics() {
+      const sessionDates = new Set(records.map(record => record.date));
+      const exercises = new Set(records.map(record => record.exercise.trim()));
+      const totalVolume = records.reduce((sum, record) => sum + volume(record), 0);
+      const maxWeight = records.reduce((max, record) => Math.max(max, Number(record.weight)), 0);
+
+      document.getElementById("metricSessions").textContent = sessionDates.size;
+      document.getElementById("metricExercises").textContent = exercises.size;
+      document.getElementById("metricVolume").textContent = Math.round(totalVolume).toLocaleString("zh-CN");
+      document.getElementById("metricMax").textContent = maxWeight.toLocaleString("zh-CN");
+    }
+
+    function summarize(items) {
+      return {
+        count: items.length,
+        volume: items.reduce((sum, item) => sum + volume(item), 0),
+        parts: [...new Set(items.map(item => item.part))]
+      };
+    }
+
+    function recordsForDate(date) {
+      const iso = toISODate(date);
+      return records.filter(record => record.date === iso);
+    }
+
+    function calendarCell(label, items, options = {}) {
+      const info = summarize(items);
+      const muted = options.muted ? " muted" : "";
+      const hasData = info.count ? " has-data" : "";
+      return `
+        <div class="calendar-cell${muted}${hasData}">
+          <div class="cell-date">
+            <span>${label}</span>
+            <span class="cell-dot"></span>
+          </div>
+          <div class="cell-body">
+            ${info.count ? `${info.count} 动作<br>${Math.round(info.volume).toLocaleString("zh-CN")} kg` : "无训练"}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCalendar() {
+      const base = records.length
+        ? dateFromISO([...records].sort((a, b) => b.date.localeCompare(a.date))[0].date)
+        : today;
+      const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
+      const total = summarize(records);
+
+      if (range === "day") {
+        const start = addDays(base, -3);
+        const cells = Array.from({ length: 7 }, (_, index) => {
+          const date = addDays(start, index);
+          const label = `${date.getMonth() + 1}/${date.getDate()}`;
+          return calendarCell(label, recordsForDate(date), { muted: toISODate(date) !== toISODate(base) });
+        }).join("");
+        calendarEl.innerHTML = `
+          <div class="calendar-head">
+            <div class="calendar-title">${toISODate(base)}</div>
+            <div class="calendar-meta">${total.count} 个动作 · ${Math.round(total.volume).toLocaleString("zh-CN")} kg</div>
+          </div>
+          <div class="calendar-grid day">${cells}</div>
+        `;
+        return;
+      }
+
+      if (range === "week") {
+        const monday = addDays(base, -((base.getDay() || 7) - 1));
+        const cells = Array.from({ length: 7 }, (_, index) => {
+          const date = addDays(monday, index);
+          return calendarCell(`${weekdays[index]} ${date.getDate()}`, recordsForDate(date));
+        }).join("");
+        const sunday = addDays(monday, 6);
+        calendarEl.innerHTML = `
+          <div class="calendar-head">
+            <div class="calendar-title">${weekKey(toISODate(base))}</div>
+            <div class="calendar-meta">${toISODate(monday)} 至 ${toISODate(sunday)}</div>
+          </div>
+          <div class="calendar-grid week">${cells}</div>
+        `;
+        return;
+      }
+
+      if (range === "month") {
+        const first = new Date(base.getFullYear(), base.getMonth(), 1);
+        const startOffset = (first.getDay() || 7) - 1;
+        const start = addDays(first, -startOffset);
+        const weekdayLabels = weekdays.map(day => `<div class="weekday">${day}</div>`).join("");
+        const dayCells = Array.from({ length: 42 }, (_, index) => {
+          const date = addDays(start, index);
+          return calendarCell(String(date.getDate()), recordsForDate(date), { muted: !sameMonth(date, base) });
+        }).join("");
+        calendarEl.innerHTML = `
+          <div class="calendar-head">
+            <div class="calendar-title">${monthKey(toISODate(base))}</div>
+            <div class="calendar-meta">日历月视图</div>
+          </div>
+          <div class="calendar-grid month">${weekdayLabels}${dayCells}</div>
+        `;
+        return;
+      }
+
+      const months = Array.from({ length: 12 }, (_, index) => {
+        const items = records.filter(record => {
+          const date = dateFromISO(record.date);
+          return date.getFullYear() === base.getFullYear() && date.getMonth() === index;
+        });
+        return calendarCell(`${index + 1} 月`, items);
+      }).join("");
+      calendarEl.innerHTML = `
+        <div class="calendar-head">
+          <div class="calendar-title">${base.getFullYear()} 年</div>
+          <div class="calendar-meta">12 个月训练概览</div>
+        </div>
+        <div class="calendar-grid year">${months}</div>
+      `;
+    }
+
+    function renderHistory() {
+      rangeLabel.textContent = range === "day" ? "按日历日查看" : range === "week" ? "按周日历查看" : range === "month" ? "按月日历查看" : "按年日历查看";
+      groupsEl.innerHTML = "";
+
+      if (records.length === 0) {
+        calendarEl.innerHTML = "";
+        groupsEl.innerHTML = '<div class="empty">还没有训练记录，先保存一次训练。</div>';
+        renderMetrics();
+        return;
+      }
+
+      renderCalendar();
+
+      const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+      const grouped = new Map();
+      for (const record of sorted) {
+        const key = groupKey(record);
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(record);
+      }
+
+      for (const [key, items] of grouped) {
+        const group = document.createElement("article");
+        group.className = "group";
+        const total = items.reduce((sum, item) => sum + volume(item), 0);
+        group.innerHTML = `
+          <div class="group-head">
+            <div class="group-title">${key}</div>
+            <div class="group-total">${items.length} 个动作 · ${Math.round(total).toLocaleString("zh-CN")} kg</div>
+          </div>
+        `;
+
+        for (const item of items) {
+          const row = document.createElement("div");
+          row.className = "entry";
+          row.innerHTML = `
+            <div class="entry-main">
+              <div class="entry-top">
+                <span class="part">${item.part}</span>
+                <span class="exercise">${escapeHTML(item.exercise)}</span>
+              </div>
+              <div class="detail">${item.date} · ${item.sets} 组 × ${item.reps} 次 × ${item.weight} kg</div>
+            </div>
+            <div>
+              <div class="volume">${Math.round(volume(item)).toLocaleString("zh-CN")} kg</div>
+              <button class="delete" data-id="${item.id}" type="button">删除</button>
+            </div>
+          `;
+          group.appendChild(row);
+        }
+
+        groupsEl.appendChild(group);
+      }
+
+      renderMetrics();
+    }
+
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const record = {
+        id: crypto.randomUUID(),
+        date: dateEl.value,
+        part: document.getElementById("part").value,
+        exercise: document.getElementById("exercise").value.trim(),
+        sets: Number(document.getElementById("sets").value),
+        reps: Number(document.getElementById("reps").value),
+        weight: Number(document.getElementById("weight").value),
+        createdAt: Date.now()
+      };
+      records.push(record);
+      save();
+      form.reset();
+      dateEl.value = record.date;
+      document.getElementById("sets").value = 4;
+      document.getElementById("reps").value = 10;
+      document.getElementById("weight").value = record.weight;
+      renderHistory();
+    });
+
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        range = tab.dataset.range;
+        tabs.forEach(item => item.classList.toggle("active", item === tab));
+        renderHistory();
+      });
+    });
+
+    groupsEl.addEventListener("click", event => {
+      if (!event.target.matches(".delete")) return;
+      records = records.filter(record => record.id !== event.target.dataset.id);
+      save();
+      renderHistory();
+    });
+
+    document.getElementById("clearAll").addEventListener("click", () => {
+      if (!records.length) return;
+      if (!confirm("确定清空所有健身记录？")) return;
+      records = [];
+      save();
+      renderHistory();
+    });
+
+    renderHistory();
+  </script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>番茄专注钟</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --panel: rgba(255, 255, 255, 0.72);
+      --border: rgba(0, 0, 0, 0.08);
+      --accent: #ff3b30;
+      --accent-soft: rgba(255, 59, 48, 0.12);
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.96), transparent 26%),
+        linear-gradient(135deg, #fbfbfd 0%, #eef1f6 52%, #e7ebf2 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(92vw, 430px);
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .app-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(160deg, #ff6b60, #ff2d55);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 12px 24px rgba(255, 59, 48, 0.24);
+    }
+
+    .app-icon::before {
+      content: "";
+      width: 18px;
+      height: 18px;
+      border-radius: 50% 50% 46% 46%;
+      background: #fff;
+      box-shadow: 0 -5px 0 -3px #30d158;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status {
+      flex: 0 0 auto;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .modes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 5px;
+      margin-bottom: 26px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .mode {
+      min-height: 38px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .mode.active {
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .dial {
+      position: relative;
+      width: min(72vw, 294px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 26px;
+    }
+
+    svg {
+      position: absolute;
+      inset: 0;
+      transform: rotate(-90deg);
+    }
+
+    .track {
+      fill: none;
+      stroke: rgba(0, 0, 0, 0.07);
+      stroke-width: 13;
+    }
+
+    .progress {
+      fill: none;
+      stroke: var(--accent);
+      stroke-linecap: round;
+      stroke-width: 13;
+      transition: stroke-dashoffset 500ms ease, stroke 200ms ease;
+      filter: drop-shadow(0 10px 18px rgba(255, 59, 48, 0.22));
+    }
+
+    .time {
+      position: relative;
+      text-align: center;
+    }
+
+    .minutes {
+      font-size: clamp(56px, 16vw, 78px);
+      font-weight: 800;
+      line-height: 0.96;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+    }
+
+    .phase {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 54px;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .primary,
+    .icon-button {
+      min-height: 52px;
+      border: 0;
+      border-radius: 16px;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+    }
+
+    .primary {
+      background: var(--text);
+      color: white;
+      box-shadow: 0 15px 32px rgba(29, 29, 31, 0.18);
+    }
+
+    .icon-button {
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(0, 0, 0, 0.045));
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 10px 22px rgba(0, 0, 0, 0.07);
+    }
+
+    .icon-button svg {
+      position: static;
+      width: 24px;
+      height: 24px;
+      transform: none;
+      opacity: 0.78;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .icon-button:hover svg {
+      opacity: 1;
+      transform: rotate(-18deg);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 14px 15px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.46);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .value {
+      margin-top: 6px;
+      font-size: 20px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101013;
+        --text: #f5f5f7;
+        --muted: #a1a1a6;
+        --panel: rgba(30, 30, 34, 0.74);
+        --border: rgba(255, 255, 255, 0.11);
+        --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.08), transparent 24%),
+          linear-gradient(135deg, #111217 0%, #1d2029 58%, #121318 100%);
+      }
+
+      .mode.active {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .track {
+        stroke: rgba(255, 255, 255, 0.1);
+      }
+
+      .icon-button {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
+      }
+
+      .stat {
+        background: rgba(255, 255, 255, 0.06);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <div class="identity">
+        <div class="app-icon" aria-hidden="true"></div>
+        <div>
+          <h1>番茄专注钟</h1>
+          <div class="subtitle">保持节奏，轻轻进入心流</div>
+        </div>
+      </div>
+      <div class="status" id="status">就绪</div>
+    </div>
+
+    <div class="modes" role="tablist" aria-label="计时模式">
+      <button class="mode active" data-mode="focus">专注</button>
+      <button class="mode" data-mode="short">短休息</button>
+      <button class="mode" data-mode="long">长休息</button>
+    </div>
+
+    <section class="dial" aria-live="polite">
+      <svg viewBox="0 0 260 260" aria-hidden="true">
+        <circle class="track" cx="130" cy="130" r="112"></circle>
+        <circle class="progress" id="progress" cx="130" cy="130" r="112"></circle>
+      </svg>
+      <div class="time">
+        <div class="minutes" id="time">25:00</div>
+        <div class="phase" id="phase">专注 25 分钟</div>
+      </div>
+    </section>
+
+    <div class="controls">
+      <button class="primary" id="toggle">开始专注</button>
+      <button class="icon-button" id="reset" aria-label="重置" title="重置">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4.75 8.75A8.25 8.25 0 1 1 4 12.2" stroke="currentColor" stroke-width="2.35" stroke-linecap="round"/>
+          <path d="M4.25 4.75v5h5" stroke="currentColor" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">今日番茄</div>
+        <div class="value" id="count">0</div>
+      </div>
+      <div class="stat">
+        <div class="label">当前轮次</div>
+        <div class="value" id="round">1 / 4</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const modes = {
+      focus: { label: "专注", minutes: 25, accent: "#ff3b30", phase: "专注 25 分钟" },
+      short: { label: "短休息", minutes: 5, accent: "#34c759", phase: "短休息 5 分钟" },
+      long: { label: "长休息", minutes: 15, accent: "#007aff", phase: "长休息 15 分钟" }
+    };
+
+    const progress = document.getElementById("progress");
+    const timeEl = document.getElementById("time");
+    const phaseEl = document.getElementById("phase");
+    const statusEl = document.getElementById("status");
+    const toggleEl = document.getElementById("toggle");
+    const resetEl = document.getElementById("reset");
+    const countEl = document.getElementById("count");
+    const roundEl = document.getElementById("round");
+    const modeButtons = document.querySelectorAll(".mode");
+
+    const radius = 112;
+    const circumference = 2 * Math.PI * radius;
+    progress.style.strokeDasharray = circumference;
+
+    let currentMode = "focus";
+    let totalSeconds = modes.focus.minutes * 60;
+    let remainingSeconds = totalSeconds;
+    let timer = null;
+    let completed = 0;
+    let round = 1;
+
+    function format(seconds) {
+      const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+      const rest = Math.floor(seconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${rest}`;
+    }
+
+    function render() {
+      const elapsed = totalSeconds - remainingSeconds;
+      const ratio = totalSeconds === 0 ? 0 : elapsed / totalSeconds;
+      progress.style.strokeDashoffset = circumference * (1 - ratio);
+      progress.style.stroke = modes[currentMode].accent;
+      document.documentElement.style.setProperty("--accent", modes[currentMode].accent);
+      timeEl.textContent = format(remainingSeconds);
+      phaseEl.textContent = modes[currentMode].phase;
+      countEl.textContent = completed;
+      roundEl.textContent = `${round} / 4`;
+      toggleEl.textContent = timer ? "暂停" : currentMode === "focus" ? "开始专注" : "开始休息";
+      statusEl.textContent = timer ? "进行中" : "就绪";
+    }
+
+    function switchMode(mode) {
+      clearInterval(timer);
+      timer = null;
+      currentMode = mode;
+      totalSeconds = modes[mode].minutes * 60;
+      remainingSeconds = totalSeconds;
+      modeButtons.forEach(button => button.classList.toggle("active", button.dataset.mode === mode));
+      render();
+    }
+
+    function nextMode() {
+      if (currentMode === "focus") {
+        completed += 1;
+        round = round === 4 ? 1 : round + 1;
+        switchMode(completed % 4 === 0 ? "long" : "short");
+      } else {
+        switchMode("focus");
+      }
+      statusEl.textContent = "已完成";
+    }
+
+    function tick() {
+      remainingSeconds -= 1;
+      if (remainingSeconds <= 0) {
+        remainingSeconds = 0;
+        clearInterval(timer);
+        timer = null;
+        render();
+        nextMode();
+        return;
+      }
+      render();
+    }
+
+    toggleEl.addEventListener("click", () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      } else {
+        timer = setInterval(tick, 1000);
+      }
+      render();
+    });
+
+    resetEl.addEventListener("click", () => switchMode(currentMode));
+    modeButtons.forEach(button => button.addEventListener("click", () => switchMode(button.dataset.mode)));
+
+    render();
+  </script>
+</body>
+</html>
