@@ -619,6 +619,10 @@
       background: rgba(255, 255, 255, 0.5);
     }
 
+    .group-head.foldable {
+      cursor: pointer;
+    }
+
     .group-title {
       font-weight: 850;
     }
@@ -627,6 +631,12 @@
       color: var(--muted);
       font-size: 12px;
       font-weight: 750;
+    }
+
+    .group-toggle {
+      color: var(--blue);
+      margin-left: 10px;
+      white-space: nowrap;
     }
 
     .entries {
@@ -1040,7 +1050,8 @@
     let restRemaining = restDuration;
     let restTimerId = null;
     const groupDisplayLimit = 10;
-    const expandedGroups = new Set();
+    const expandedRecordLists = new Set();
+    const openGroups = new Set();
 
     document.getElementById("today").textContent = new Intl.DateTimeFormat("zh-CN", {
       month: "long",
@@ -1279,6 +1290,11 @@
       return includeDays ? `${trainingDays(items)} 天 · ${base}` : base;
     }
 
+    function groupMeta(items) {
+      const summary = summarize(items);
+      return `${trainingDays(items)} 天 · ${summary.count} 个动作 · ${summary.sets.toLocaleString("zh-CN")} 组`;
+    }
+
     function renderCalendar() {
       clampViewDate();
       const base = viewDate;
@@ -1377,7 +1393,14 @@
 
       renderCalendar();
 
-      const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+      const scopedRecords = range === "day" ? recordsForDate(viewDate) : records;
+      if (scopedRecords.length === 0) {
+        groupsEl.innerHTML = '<div class="empty"><strong>该日期没有训练记录</strong><span>可以切换日期，或在左侧新增训练。</span></div>';
+        renderMetrics();
+        return;
+      }
+
+      const sorted = [...scopedRecords].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
       const grouped = new Map();
       for (const record of sorted) {
         const key = groupKey(record);
@@ -1385,51 +1408,60 @@
         grouped.get(key).push(record);
       }
 
+      let groupIndex = 0;
       for (const [key, items] of grouped) {
+        const groupStateKey = `${range}:${key}:${groupIndex}`;
         const group = document.createElement("article");
         group.className = "group";
-        const summary = summarize(items);
-        const isExpanded = expandedGroups.has(key);
-        const visibleItems = isExpanded ? items : items.slice(0, groupDisplayLimit);
+        const isFoldable = range !== "day";
+        const isOpen = !isFoldable || openGroups.has(groupStateKey);
+        const isListExpanded = expandedRecordLists.has(groupStateKey);
+        const visibleItems = isListExpanded ? items : items.slice(0, groupDisplayLimit);
         const hiddenCount = Math.max(0, items.length - groupDisplayLimit);
         group.innerHTML = `
-          <div class="group-head">
+          <div class="group-head${isFoldable ? " foldable" : ""}" ${isFoldable ? `data-toggle-group="${groupStateKey}"` : ""}>
             <div class="group-title">${key}</div>
-            <div class="group-total">${summary.count} 个动作 · ${summary.sets.toLocaleString("zh-CN")} 组</div>
+            <div class="group-total">
+              ${groupMeta(items)}
+              ${isFoldable ? `<span class="group-toggle">${isOpen ? "收起" : "展开"}</span>` : ""}
+            </div>
           </div>
-          <div class="entries${isExpanded && hiddenCount ? " scrollable" : ""}"></div>
+          <div class="entries${isListExpanded && hiddenCount ? " scrollable" : ""}"></div>
         `;
 
         const entriesEl = group.querySelector(".entries");
-        for (const item of visibleItems) {
-          const row = document.createElement("div");
-          row.className = "entry";
-          row.innerHTML = `
-            <div class="entry-main">
-              <div class="entry-top">
-                <span class="part">${item.part}</span>
-                <span class="exercise">${escapeHTML(item.exercise)}</span>
+        if (isOpen) {
+          for (const item of visibleItems) {
+            const row = document.createElement("div");
+            row.className = "entry";
+            row.innerHTML = `
+              <div class="entry-main">
+                <div class="entry-top">
+                  <span class="part">${item.part}</span>
+                  <span class="exercise">${escapeHTML(item.exercise)}</span>
+                </div>
+                <div class="detail">${item.date} · ${item.sets} 组 × ${item.reps} 次 × ${item.weight} kg</div>
               </div>
-              <div class="detail">${item.date} · ${item.sets} 组 × ${item.reps} 次 × ${item.weight} kg</div>
-            </div>
-            <div>
-              <div class="volume">${totalSets(recordsForISODate(item.date)).toLocaleString("zh-CN")} 组</div>
-              <button class="delete" data-id="${item.id}" type="button">删除</button>
-            </div>
-          `;
-          entriesEl.appendChild(row);
+              <div>
+                <div class="volume">${totalSets(recordsForISODate(item.date)).toLocaleString("zh-CN")} 组</div>
+                <button class="delete" data-id="${item.id}" type="button">删除</button>
+              </div>
+            `;
+            entriesEl.appendChild(row);
+          }
         }
 
-        if (hiddenCount) {
+        if (isOpen && hiddenCount) {
           const more = document.createElement("button");
           more.className = "group-more";
-          more.dataset.groupKey = key;
+          more.dataset.groupKey = groupStateKey;
           more.type = "button";
-          more.textContent = isExpanded ? "收起记录" : `展开全部，剩余 ${hiddenCount} 条`;
+          more.textContent = isListExpanded ? "收起记录" : `展开全部，剩余 ${hiddenCount} 条`;
           group.appendChild(more);
         }
 
         groupsEl.appendChild(group);
+        groupIndex += 1;
       }
 
       renderMetrics();
@@ -1517,13 +1549,26 @@
     });
 
     groupsEl.addEventListener("click", event => {
+      const toggleHead = event.target.closest("[data-toggle-group]");
+      if (toggleHead) {
+        const key = toggleHead.dataset.toggleGroup;
+        if (openGroups.has(key)) {
+          openGroups.delete(key);
+          expandedRecordLists.delete(key);
+        } else {
+          openGroups.add(key);
+        }
+        renderHistory();
+        return;
+      }
+
       const moreButton = event.target.closest(".group-more");
       if (moreButton) {
         const key = moreButton.dataset.groupKey;
-        if (expandedGroups.has(key)) {
-          expandedGroups.delete(key);
+        if (expandedRecordLists.has(key)) {
+          expandedRecordLists.delete(key);
         } else {
-          expandedGroups.add(key);
+          expandedRecordLists.add(key);
         }
         renderHistory();
         return;
