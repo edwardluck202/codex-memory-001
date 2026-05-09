@@ -493,8 +493,9 @@
 
     .calendar-meta {
       color: var(--muted);
-      font-size: 12px;
-      font-weight: 750;
+      font-size: 14px;
+      font-weight: 850;
+      line-height: 1.25;
     }
 
     .calendar-grid {
@@ -1152,6 +1153,10 @@
       return Number(record.sets) * Number(record.reps);
     }
 
+    function trainingDays(items) {
+      return new Set(items.map(item => item.date)).size;
+    }
+
     function recordsForISODate(dateString) {
       return records.filter(record => record.date === dateString);
     }
@@ -1243,6 +1248,12 @@
       `;
     }
 
+    function periodMeta(items, includeDays = false) {
+      const summary = summarize(items);
+      const base = `${summary.count} 个动作 · ${summary.sets.toLocaleString("zh-CN")} 组`;
+      return includeDays ? `${trainingDays(items)} 个训练日 · ${base}` : base;
+    }
+
     function renderCalendar() {
       clampViewDate();
       const base = viewDate;
@@ -1261,7 +1272,7 @@
           });
         }).join("");
         calendarEl.innerHTML = `
-          ${calendarHead(toISODate(base), `${daySummary.count} 个动作 · ${daySummary.sets.toLocaleString("zh-CN")} 组`)}
+          ${calendarHead(toISODate(base), periodMeta(recordsForDate(base)))}
           <div class="calendar-grid day">${cells}</div>
         `;
         return;
@@ -1280,9 +1291,8 @@
           const date = dateFromISO(record.date);
           return date >= monday && date <= sunday;
         });
-        const weekSummary = summarize(weekItems);
         calendarEl.innerHTML = `
-          ${calendarHead(weekKey(toISODate(base)), `${weekSummary.count} 个动作 · ${weekSummary.sets.toLocaleString("zh-CN")} 组`)}
+          ${calendarHead(weekKey(toISODate(base)), periodMeta(weekItems, true))}
           <div class="calendar-grid week">${cells}</div>
         `;
         return;
@@ -1304,16 +1314,14 @@
           const date = dateFromISO(record.date);
           return date.getFullYear() === base.getFullYear() && date.getMonth() === base.getMonth();
         });
-        const monthSummary = summarize(monthItems);
         calendarEl.innerHTML = `
-          ${calendarHead(monthKey(toISODate(base)), `${monthSummary.count} 个动作 · ${monthSummary.sets.toLocaleString("zh-CN")} 组`)}
+          ${calendarHead(monthKey(toISODate(base)), periodMeta(monthItems, true))}
           <div class="calendar-grid month">${weekdayLabels}${dayCells}</div>
         `;
         return;
       }
 
       const yearItems = records.filter(record => dateFromISO(record.date).getFullYear() === base.getFullYear());
-      const yearSummary = summarize(yearItems);
       const months = Array.from({ length: 12 }, (_, index) => {
         const items = records.filter(record => {
           const date = dateFromISO(record.date);
@@ -1323,7 +1331,7 @@
         return calendarCell(`${index + 1} 月`, items, { future: monthStart > todayKey });
       }).join("");
       calendarEl.innerHTML = `
-        ${calendarHead(`${base.getFullYear()} 年`, `${yearSummary.count} 个动作 · ${yearSummary.sets.toLocaleString("zh-CN")} 组`)}
+        ${calendarHead(`${base.getFullYear()} 年`, periodMeta(yearItems, true))}
         <div class="calendar-grid year">${months}</div>
       `;
     }
