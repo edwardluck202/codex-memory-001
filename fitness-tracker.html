@@ -445,6 +445,22 @@
       opacity: 0.42;
     }
 
+    .calendar-cell.future {
+      border-color: rgba(0, 0, 0, 0.055);
+      background: rgba(255, 255, 255, 0.32);
+      color: rgba(29, 29, 31, 0.34);
+      opacity: 0.62;
+    }
+
+    .calendar-cell.future .cell-body,
+    .calendar-cell.future .cell-date {
+      color: rgba(110, 110, 115, 0.6);
+    }
+
+    .calendar-cell.future .cell-dot {
+      display: none;
+    }
+
     .calendar-cell.has-data {
       border-color: rgba(0, 122, 255, 0.25);
       background: linear-gradient(180deg, rgba(0, 122, 255, 0.13), rgba(255, 255, 255, 0.68));
@@ -852,6 +868,7 @@
 
     dateEl.max = todayKey;
     dateEl.value = todayKey;
+    dateEl.setAttribute("aria-describedby", "saveStatus");
 
     function toISODate(date) {
       const offset = date.getTimezoneOffset() * 60000;
@@ -913,6 +930,17 @@
       return records.filter(record => record.date === dateString);
     }
 
+    function isFutureISODate(dateString) {
+      return dateString > todayKey;
+    }
+
+    function clampDateToToday() {
+      if (!dateEl.value || !isFutureISODate(dateEl.value)) return false;
+      dateEl.value = todayKey;
+      saveStatus.textContent = "日期不能晚于今天";
+      return true;
+    }
+
     function renderMetrics() {
       const todayRecords = recordsForISODate(todayKey);
       const totalVolume = todayRecords.reduce((sum, record) => sum + volume(record), 0);
@@ -941,15 +969,16 @@
     function calendarCell(label, items, options = {}) {
       const info = summarize(items);
       const muted = options.muted ? " muted" : "";
-      const hasData = info.count ? " has-data" : "";
+      const future = options.future ? " future" : "";
+      const hasData = info.count && !options.future ? " has-data" : "";
       return `
-        <div class="calendar-cell${muted}${hasData}">
+        <div class="calendar-cell${muted}${future}${hasData}" aria-disabled="${options.future ? "true" : "false"}">
           <div class="cell-date">
             <span>${label}</span>
             <span class="cell-dot"></span>
           </div>
           <div class="cell-body">
-            ${info.count ? `${info.count} 动作<br>${Math.round(info.volume).toLocaleString("zh-CN")} kg` : "无训练"}
+            ${options.future ? "未开始" : info.count ? `${info.count} 动作<br>${Math.round(info.volume).toLocaleString("zh-CN")} kg` : "无训练"}
           </div>
         </div>
       `;
@@ -967,7 +996,11 @@
         const cells = Array.from({ length: 7 }, (_, index) => {
           const date = addDays(start, index);
           const label = `${date.getMonth() + 1}/${date.getDate()}`;
-          return calendarCell(label, recordsForDate(date), { muted: toISODate(date) !== toISODate(base) });
+          const dateKey = toISODate(date);
+          return calendarCell(label, recordsForDate(date), {
+            muted: dateKey !== toISODate(base),
+            future: isFutureISODate(dateKey)
+          });
         }).join("");
         calendarEl.innerHTML = `
           <div class="calendar-head">
@@ -983,7 +1016,9 @@
         const monday = addDays(base, -((base.getDay() || 7) - 1));
         const cells = Array.from({ length: 7 }, (_, index) => {
           const date = addDays(monday, index);
-          return calendarCell(`${weekdays[index]} ${date.getDate()}`, recordsForDate(date));
+          return calendarCell(`${weekdays[index]} ${date.getDate()}`, recordsForDate(date), {
+            future: isFutureISODate(toISODate(date))
+          });
         }).join("");
         const sunday = addDays(monday, 6);
         calendarEl.innerHTML = `
@@ -1003,7 +1038,10 @@
         const weekdayLabels = weekdays.map(day => `<div class="weekday">${day}</div>`).join("");
         const dayCells = Array.from({ length: 42 }, (_, index) => {
           const date = addDays(start, index);
-          return calendarCell(String(date.getDate()), recordsForDate(date), { muted: !sameMonth(date, base) });
+          return calendarCell(String(date.getDate()), recordsForDate(date), {
+            muted: !sameMonth(date, base),
+            future: isFutureISODate(toISODate(date))
+          });
         }).join("");
         calendarEl.innerHTML = `
           <div class="calendar-head">
@@ -1020,7 +1058,8 @@
           const date = dateFromISO(record.date);
           return date.getFullYear() === base.getFullYear() && date.getMonth() === index;
         });
-        return calendarCell(`${index + 1} 月`, items);
+        const monthStart = toISODate(new Date(base.getFullYear(), index, 1));
+        return calendarCell(`${index + 1} 月`, items, { future: monthStart > todayKey });
       }).join("");
       calendarEl.innerHTML = `
         <div class="calendar-head">
@@ -1100,9 +1139,7 @@
 
     form.addEventListener("submit", event => {
       event.preventDefault();
-      if (dateEl.value > todayKey) {
-        dateEl.value = todayKey;
-        saveStatus.textContent = "日期不能晚于今天";
+      if (clampDateToToday()) {
         dateEl.focus();
         return;
       }
@@ -1133,11 +1170,11 @@
     });
 
     dateEl.addEventListener("change", () => {
-      if (dateEl.value > todayKey) {
-        dateEl.value = todayKey;
-        saveStatus.textContent = "日期不能晚于今天";
-      }
+      clampDateToToday();
     });
+
+    dateEl.addEventListener("input", clampDateToToday);
+    dateEl.addEventListener("blur", clampDateToToday);
 
     tabs.forEach(tab => {
       tab.addEventListener("click", () => {
