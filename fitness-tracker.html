@@ -398,6 +398,34 @@
       background: rgba(255, 255, 255, 0.48);
     }
 
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .period-btn {
+      min-width: 34px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .period-btn.today-btn {
+      min-width: 48px;
+      padding: 0 11px;
+    }
+
+    .period-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.36;
+    }
+
     .calendar-title {
       font-size: 15px;
       font-weight: 850;
@@ -697,6 +725,19 @@
         min-width: 560px;
       }
 
+      .calendar-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .calendar-nav {
+        width: 100%;
+      }
+
+      .period-btn {
+        flex: 1;
+      }
+
       .calendar-grid.year {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -877,6 +918,7 @@
 
     let records = JSON.parse(localStorage.getItem(storeKey) || "[]");
     let range = "day";
+    let viewDate = new Date(today);
 
     document.getElementById("today").textContent = new Intl.DateTimeFormat("zh-CN", {
       month: "long",
@@ -906,6 +948,19 @@
       const next = new Date(date);
       next.setDate(next.getDate() + days);
       return next;
+    }
+
+    function addMonths(date, months) {
+      return new Date(date.getFullYear(), date.getMonth() + months, 1);
+    }
+
+    function addYears(date, years) {
+      return new Date(date.getFullYear() + years, 0, 1);
+    }
+
+    function clampViewDate() {
+      if (toISODate(viewDate) <= todayKey) return;
+      viewDate = new Date(today);
     }
 
     function sameMonth(a, b) {
@@ -1012,15 +1067,42 @@
       `;
     }
 
+    function canGoNextPeriod() {
+      const next = getShiftedViewDate(1);
+      return toISODate(next) <= todayKey;
+    }
+
+    function getShiftedViewDate(direction) {
+      if (range === "day") return addDays(viewDate, direction);
+      if (range === "week") return addDays(viewDate, direction * 7);
+      if (range === "month") return addMonths(viewDate, direction);
+      return addYears(viewDate, direction);
+    }
+
+    function calendarHead(title, meta) {
+      return `
+        <div class="calendar-head">
+          <div>
+            <div class="calendar-title">${title}</div>
+            <div class="calendar-meta">${meta}</div>
+          </div>
+          <div class="calendar-nav" aria-label="选择历史时间">
+            <button class="period-btn" data-period-step="-1" type="button" aria-label="上一周期">‹</button>
+            <button class="period-btn today-btn" data-period-today type="button">今天</button>
+            <button class="period-btn" data-period-step="1" type="button" aria-label="下一周期" ${canGoNextPeriod() ? "" : "disabled"}>›</button>
+          </div>
+        </div>
+      `;
+    }
+
     function renderCalendar() {
-      const base = records.length
-        ? dateFromISO([...records].sort((a, b) => b.date.localeCompare(a.date))[0].date)
-        : today;
+      clampViewDate();
+      const base = viewDate;
       const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
-      const total = summarize(records);
 
       if (range === "day") {
         const start = addDays(base, -3);
+        const daySummary = summarize(recordsForDate(base));
         const cells = Array.from({ length: 7 }, (_, index) => {
           const date = addDays(start, index);
           const label = `${date.getMonth() + 1}/${date.getDate()}`;
@@ -1031,10 +1113,7 @@
           });
         }).join("");
         calendarEl.innerHTML = `
-          <div class="calendar-head">
-            <div class="calendar-title">${toISODate(base)}</div>
-            <div class="calendar-meta">${total.count} 个动作 · ${total.sets.toLocaleString("zh-CN")} 组</div>
-          </div>
+          ${calendarHead(toISODate(base), `${daySummary.count} 个动作 · ${daySummary.sets.toLocaleString("zh-CN")} 组`)}
           <div class="calendar-grid day">${cells}</div>
         `;
         return;
@@ -1055,10 +1134,7 @@
         });
         const weekSummary = summarize(weekItems);
         calendarEl.innerHTML = `
-          <div class="calendar-head">
-            <div class="calendar-title">${weekKey(toISODate(base))}</div>
-            <div class="calendar-meta">${weekSummary.count} 个动作 · ${weekSummary.sets.toLocaleString("zh-CN")} 组</div>
-          </div>
+          ${calendarHead(weekKey(toISODate(base)), `${weekSummary.count} 个动作 · ${weekSummary.sets.toLocaleString("zh-CN")} 组`)}
           <div class="calendar-grid week">${cells}</div>
         `;
         return;
@@ -1082,10 +1158,7 @@
         });
         const monthSummary = summarize(monthItems);
         calendarEl.innerHTML = `
-          <div class="calendar-head">
-            <div class="calendar-title">${monthKey(toISODate(base))}</div>
-            <div class="calendar-meta">${monthSummary.count} 个动作 · ${monthSummary.sets.toLocaleString("zh-CN")} 组</div>
-          </div>
+          ${calendarHead(monthKey(toISODate(base)), `${monthSummary.count} 个动作 · ${monthSummary.sets.toLocaleString("zh-CN")} 组`)}
           <div class="calendar-grid month">${weekdayLabels}${dayCells}</div>
         `;
         return;
@@ -1102,10 +1175,7 @@
         return calendarCell(`${index + 1} 月`, items, { future: monthStart > todayKey });
       }).join("");
       calendarEl.innerHTML = `
-        <div class="calendar-head">
-          <div class="calendar-title">${base.getFullYear()} 年</div>
-          <div class="calendar-meta">${yearSummary.count} 个动作 · ${yearSummary.sets.toLocaleString("zh-CN")} 组</div>
-        </div>
+        ${calendarHead(`${base.getFullYear()} 年`, `${yearSummary.count} 个动作 · ${yearSummary.sets.toLocaleString("zh-CN")} 组`)}
         <div class="calendar-grid year">${months}</div>
       `;
     }
@@ -1198,6 +1268,7 @@
       form.reset();
       renderExerciseOptions();
       dateEl.value = record.date;
+      viewDate = dateFromISO(record.date);
       document.getElementById("sets").value = 4;
       document.getElementById("reps").value = 10;
       document.getElementById("weight").value = record.weight;
@@ -1219,9 +1290,25 @@
 
     partEl.addEventListener("change", renderExerciseOptions);
 
+    calendarEl.addEventListener("click", event => {
+      const stepButton = event.target.closest("[data-period-step]");
+      if (stepButton) {
+        viewDate = getShiftedViewDate(Number(stepButton.dataset.periodStep));
+        clampViewDate();
+        renderHistory();
+        return;
+      }
+
+      if (event.target.closest("[data-period-today]")) {
+        viewDate = new Date(today);
+        renderHistory();
+      }
+    });
+
     tabs.forEach(tab => {
       tab.addEventListener("click", () => {
         range = tab.dataset.range;
+        clampViewDate();
         tabs.forEach(item => item.classList.toggle("active", item === tab));
         renderHistory();
       });
