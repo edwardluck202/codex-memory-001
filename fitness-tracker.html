@@ -811,9 +811,9 @@
             <em>今日所有组数合计</em>
           </div>
           <div class="metric">
-            <small>当日训练量 kg</small>
+            <small>当日训练次数</small>
             <strong id="metricVolume">0</strong>
-            <em>组数 × 次数 × 重量</em>
+            <em>组数 × 次数</em>
           </div>
           <div class="metric">
             <small>当日最高单组 kg</small>
@@ -926,6 +926,10 @@
       return items.reduce((sum, item) => sum + Number(item.sets), 0);
     }
 
+    function totalReps(record) {
+      return Number(record.sets) * Number(record.reps);
+    }
+
     function recordsForISODate(dateString) {
       return records.filter(record => record.date === dateString);
     }
@@ -943,12 +947,12 @@
 
     function renderMetrics() {
       const todayRecords = recordsForISODate(todayKey);
-      const totalVolume = todayRecords.reduce((sum, record) => sum + volume(record), 0);
+      const totalDailyReps = todayRecords.reduce((sum, record) => sum + totalReps(record), 0);
       const maxWeight = todayRecords.reduce((max, record) => Math.max(max, Number(record.weight)), 0);
 
       document.getElementById("metricSessions").textContent = todayRecords.length;
       document.getElementById("metricExercises").textContent = totalSets(todayRecords);
-      document.getElementById("metricVolume").textContent = Math.round(totalVolume).toLocaleString("zh-CN");
+      document.getElementById("metricVolume").textContent = totalDailyReps.toLocaleString("zh-CN");
       document.getElementById("metricMax").textContent = maxWeight.toLocaleString("zh-CN");
     }
 
