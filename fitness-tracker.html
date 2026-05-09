@@ -311,6 +311,13 @@
       font-weight: 700;
     }
 
+    .metric.parts strong {
+      font-size: 20px;
+      line-height: 1.25;
+      white-space: normal;
+      word-break: keep-all;
+    }
+
     .history {
       padding: 18px;
     }
@@ -815,10 +822,10 @@
             <strong id="metricVolume">0</strong>
             <em>组数 × 次数</em>
           </div>
-          <div class="metric">
-            <small>当日最高单组 kg</small>
+          <div class="metric parts">
+            <small>当日训练部位</small>
             <strong id="metricMax">0</strong>
-            <em>今日记录最高重量</em>
+            <em>今日涉及的健身部位</em>
           </div>
         </section>
 
@@ -850,12 +857,23 @@
     const calendarEl = document.getElementById("calendar");
     const groupsEl = document.getElementById("groups");
     const dateEl = document.getElementById("date");
+    const partEl = document.getElementById("part");
+    const exerciseList = document.getElementById("exerciseList");
     const tabs = document.querySelectorAll(".tab");
     const rangeLabel = document.getElementById("rangeLabel");
     const saveStatus = document.getElementById("saveStatus");
     const submitButton = form.querySelector(".submit");
     const today = new Date();
     const todayKey = toISODate(today);
+    const exerciseOptions = {
+      "胸": ["杠铃卧推", "哑铃卧推", "上斜卧推", "下斜卧推", "器械推胸", "哑铃飞鸟", "绳索夹胸", "蝴蝶机夹胸", "俯卧撑", "双杠臂屈伸"],
+      "背": ["引体向上", "高位下拉", "坐姿划船", "杠铃划船", "哑铃划船", "T 杠划船", "器械划船", "直臂下压", "硬拉", "山羊挺身"],
+      "肩": ["杠铃推举", "哑铃肩推", "器械肩推", "阿诺德推举", "哑铃侧平举", "绳索侧平举", "前平举", "俯身飞鸟", "反向蝴蝶机", "面拉", "杠铃耸肩"],
+      "腿": ["杠铃深蹲", "史密斯深蹲", "前蹲", "腿举", "箭步蹲", "保加利亚分腿蹲", "腿屈伸", "腿弯举", "罗马尼亚硬拉", "臀推", "臀桥", "髋外展", "髋内收", "站姿提踵", "坐姿提踵"],
+      "手臂": ["杠铃弯举", "哑铃弯举", "锤式弯举", "牧师凳弯举", "绳索弯举", "集中弯举", "窄距卧推", "绳索下压", "直杆下压", "过顶臂屈伸", "仰卧臂屈伸", "哑铃颈后臂屈伸"],
+      "核心": ["卷腹", "仰卧举腿", "悬垂举腿", "平板支撑", "侧平板支撑", "俄罗斯转体", "绳索卷腹", "腹轮", "死虫", "鸟狗", "登山跑"],
+      "有氧": ["跑步机", "椭圆机", "动感单车", "划船机", "登山机", "楼梯机", "风阻单车", "跳绳"]
+    };
 
     let records = JSON.parse(localStorage.getItem(storeKey) || "[]");
     let range = "day";
@@ -869,6 +887,7 @@
     dateEl.max = todayKey;
     dateEl.value = todayKey;
     dateEl.setAttribute("aria-describedby", "saveStatus");
+    renderExerciseOptions();
 
     function toISODate(date) {
       const offset = date.getTimezoneOffset() * 60000;
@@ -934,6 +953,11 @@
       return records.filter(record => record.date === dateString);
     }
 
+    function renderExerciseOptions() {
+      const options = exerciseOptions[partEl.value] || [];
+      exerciseList.innerHTML = options.map(option => `<option value="${escapeHTML(option)}"></option>`).join("");
+    }
+
     function isFutureISODate(dateString) {
       return dateString > todayKey;
     }
@@ -948,12 +972,12 @@
     function renderMetrics() {
       const todayRecords = recordsForISODate(todayKey);
       const totalDailyReps = todayRecords.reduce((sum, record) => sum + totalReps(record), 0);
-      const maxWeight = todayRecords.reduce((max, record) => Math.max(max, Number(record.weight)), 0);
+      const parts = [...new Set(todayRecords.map(record => record.part))];
 
       document.getElementById("metricSessions").textContent = todayRecords.length;
       document.getElementById("metricExercises").textContent = totalSets(todayRecords);
       document.getElementById("metricVolume").textContent = totalDailyReps.toLocaleString("zh-CN");
-      document.getElementById("metricMax").textContent = maxWeight.toLocaleString("zh-CN");
+      document.getElementById("metricMax").textContent = parts.length ? parts.join("、") : "0";
     }
 
     function summarize(items) {
@@ -1160,6 +1184,7 @@
       records.push(record);
       save();
       form.reset();
+      renderExerciseOptions();
       dateEl.value = record.date;
       document.getElementById("sets").value = 4;
       document.getElementById("reps").value = 10;
@@ -1179,6 +1204,8 @@
 
     dateEl.addEventListener("input", clampDateToToday);
     dateEl.addEventListener("blur", clampDateToToday);
+
+    partEl.addEventListener("change", renderExerciseOptions);
 
     tabs.forEach(tab => {
       tab.addEventListener("click", () => {
