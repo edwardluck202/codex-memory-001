@@ -1006,7 +1006,7 @@
             <span class="cell-dot"></span>
           </div>
           <div class="cell-body">
-            ${options.future ? "未开始" : info.count ? `${info.count} 动作<br>${Math.round(info.volume).toLocaleString("zh-CN")} kg` : "无训练"}
+            ${options.future ? "未开始" : info.count ? `${info.count} 动作<br>${info.sets.toLocaleString("zh-CN")} 组` : "无训练"}
           </div>
         </div>
       `;
@@ -1033,7 +1033,7 @@
         calendarEl.innerHTML = `
           <div class="calendar-head">
             <div class="calendar-title">${toISODate(base)}</div>
-            <div class="calendar-meta">${total.count} 个动作 · ${Math.round(total.volume).toLocaleString("zh-CN")} kg</div>
+            <div class="calendar-meta">${total.count} 个动作 · ${total.sets.toLocaleString("zh-CN")} 组</div>
           </div>
           <div class="calendar-grid day">${cells}</div>
         `;
@@ -1049,10 +1049,15 @@
           });
         }).join("");
         const sunday = addDays(monday, 6);
+        const weekItems = records.filter(record => {
+          const date = dateFromISO(record.date);
+          return date >= monday && date <= sunday;
+        });
+        const weekSummary = summarize(weekItems);
         calendarEl.innerHTML = `
           <div class="calendar-head">
             <div class="calendar-title">${weekKey(toISODate(base))}</div>
-            <div class="calendar-meta">${toISODate(monday)} 至 ${toISODate(sunday)}</div>
+            <div class="calendar-meta">${weekSummary.count} 个动作 · ${weekSummary.sets.toLocaleString("zh-CN")} 组</div>
           </div>
           <div class="calendar-grid week">${cells}</div>
         `;
@@ -1071,16 +1076,23 @@
             future: isFutureISODate(toISODate(date))
           });
         }).join("");
+        const monthItems = records.filter(record => {
+          const date = dateFromISO(record.date);
+          return date.getFullYear() === base.getFullYear() && date.getMonth() === base.getMonth();
+        });
+        const monthSummary = summarize(monthItems);
         calendarEl.innerHTML = `
           <div class="calendar-head">
             <div class="calendar-title">${monthKey(toISODate(base))}</div>
-            <div class="calendar-meta">日历月视图</div>
+            <div class="calendar-meta">${monthSummary.count} 个动作 · ${monthSummary.sets.toLocaleString("zh-CN")} 组</div>
           </div>
           <div class="calendar-grid month">${weekdayLabels}${dayCells}</div>
         `;
         return;
       }
 
+      const yearItems = records.filter(record => dateFromISO(record.date).getFullYear() === base.getFullYear());
+      const yearSummary = summarize(yearItems);
       const months = Array.from({ length: 12 }, (_, index) => {
         const items = records.filter(record => {
           const date = dateFromISO(record.date);
@@ -1092,7 +1104,7 @@
       calendarEl.innerHTML = `
         <div class="calendar-head">
           <div class="calendar-title">${base.getFullYear()} 年</div>
-          <div class="calendar-meta">12 个月训练概览</div>
+          <div class="calendar-meta">${yearSummary.count} 个动作 · ${yearSummary.sets.toLocaleString("zh-CN")} 组</div>
         </div>
         <div class="calendar-grid year">${months}</div>
       `;
@@ -1122,11 +1134,11 @@
       for (const [key, items] of grouped) {
         const group = document.createElement("article");
         group.className = "group";
-        const total = items.reduce((sum, item) => sum + volume(item), 0);
+        const summary = summarize(items);
         group.innerHTML = `
           <div class="group-head">
             <div class="group-title">${key}</div>
-            <div class="group-total">${items.length} 个动作 · ${Math.round(total).toLocaleString("zh-CN")} kg</div>
+            <div class="group-total">${summary.count} 个动作 · ${summary.sets.toLocaleString("zh-CN")} 组</div>
           </div>
         `;
 
