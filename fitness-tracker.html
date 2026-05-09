@@ -763,6 +763,7 @@
                 <option value="手臂">手臂</option>
                 <option value="核心">核心</option>
                 <option value="有氧">有氧</option>
+                <option value="其他">其他</option>
               </select>
             </div>
 
@@ -841,7 +842,6 @@
               <button class="tab" data-range="month" type="button">月</button>
               <button class="tab" data-range="year" type="button">年</button>
             </div>
-            <button class="clear" id="clearAll" type="button">清空</button>
           </div>
 
           <div class="calendar" id="calendar"></div>
@@ -1218,14 +1218,6 @@
     groupsEl.addEventListener("click", event => {
       if (!event.target.matches(".delete")) return;
       records = records.filter(record => record.id !== event.target.dataset.id);
-      save();
-      renderHistory();
-    });
-
-    document.getElementById("clearAll").addEventListener("click", () => {
-      if (!records.length) return;
-      if (!confirm("确定清空所有健身记录？")) return;
-      records = [];
       save();
       renderHistory();
     });
