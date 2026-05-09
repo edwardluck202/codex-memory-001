@@ -215,6 +215,58 @@
       gap: 10px;
     }
 
+    .rest-timer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      margin: 4px 0 14px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+
+    .rest-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .rest-time {
+      margin-top: 4px;
+      font-size: 25px;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .timer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 7px;
+    }
+
+    .timer-btn {
+      min-width: 44px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--ink);
+      padding: 0 11px;
+      font-size: 12px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .timer-btn.primary {
+      border-color: rgba(0, 122, 255, 0.26);
+      background: rgba(0, 122, 255, 0.1);
+      color: var(--blue);
+    }
+
     .submit {
       width: 100%;
       height: 54px;
@@ -753,6 +805,18 @@
         grid-template-columns: 1fr;
       }
 
+      .rest-timer {
+        grid-template-columns: 1fr;
+      }
+
+      .timer-actions {
+        justify-content: stretch;
+      }
+
+      .timer-btn {
+        flex: 1;
+      }
+
       .entry {
         grid-template-columns: 1fr;
       }
@@ -839,6 +903,19 @@
             </div>
           </div>
 
+          <div class="rest-timer" aria-label="休息倒计时器">
+            <div>
+              <div class="rest-label">休息倒计时</div>
+              <div class="rest-time" id="restTime">01:00</div>
+            </div>
+            <div class="timer-actions">
+              <button class="timer-btn" id="restMinus" type="button">-10s</button>
+              <button class="timer-btn" id="restPlus" type="button">+10s</button>
+              <button class="timer-btn primary" id="restStart" type="button">开始</button>
+              <button class="timer-btn" id="restReset" type="button">重新计时</button>
+            </div>
+          </div>
+
           <button class="submit" type="submit">保存记录</button>
           <div class="save-note" aria-live="polite">
             <span>数据仅保存在当前浏览器</span>
@@ -904,6 +981,11 @@
     const rangeLabel = document.getElementById("rangeLabel");
     const saveStatus = document.getElementById("saveStatus");
     const submitButton = form.querySelector(".submit");
+    const restTimeEl = document.getElementById("restTime");
+    const restMinus = document.getElementById("restMinus");
+    const restPlus = document.getElementById("restPlus");
+    const restStart = document.getElementById("restStart");
+    const restReset = document.getElementById("restReset");
     const today = new Date();
     const todayKey = toISODate(today);
     const exerciseOptions = {
@@ -919,6 +1001,9 @@
     let records = JSON.parse(localStorage.getItem(storeKey) || "[]");
     let range = "day";
     let viewDate = new Date(today);
+    let restDuration = 60;
+    let restRemaining = restDuration;
+    let restTimerId = null;
 
     document.getElementById("today").textContent = new Intl.DateTimeFormat("zh-CN", {
       month: "long",
@@ -930,6 +1015,7 @@
     dateEl.value = todayKey;
     dateEl.setAttribute("aria-describedby", "saveStatus");
     renderExerciseOptions();
+    renderRestTimer();
 
     function toISODate(date) {
       const offset = date.getTimezoneOffset() * 60000;
@@ -938,6 +1024,56 @@
 
     function save() {
       localStorage.setItem(storeKey, JSON.stringify(records));
+    }
+
+    function formatSeconds(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const rest = seconds % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+    }
+
+    function renderRestTimer() {
+      restTimeEl.textContent = formatSeconds(restRemaining);
+      restStart.textContent = restTimerId ? "暂停" : "开始";
+    }
+
+    function stopRestTimer() {
+      if (!restTimerId) return;
+      window.clearInterval(restTimerId);
+      restTimerId = null;
+      renderRestTimer();
+    }
+
+    function adjustRestTimer(delta) {
+      restDuration = Math.max(10, restDuration + delta);
+      restRemaining = restDuration;
+      stopRestTimer();
+      renderRestTimer();
+    }
+
+    function resetRestTimer() {
+      restRemaining = restDuration;
+      stopRestTimer();
+      renderRestTimer();
+    }
+
+    function toggleRestTimer() {
+      if (restTimerId) {
+        stopRestTimer();
+        return;
+      }
+
+      if (restRemaining <= 0) restRemaining = restDuration;
+      restTimerId = window.setInterval(() => {
+        restRemaining -= 1;
+        if (restRemaining <= 0) {
+          restRemaining = 0;
+          stopRestTimer();
+          return;
+        }
+        renderRestTimer();
+      }, 1000);
+      renderRestTimer();
     }
 
     function dateFromISO(dateString) {
@@ -1289,6 +1425,10 @@
     dateEl.addEventListener("blur", clampDateToToday);
 
     partEl.addEventListener("change", renderExerciseOptions);
+    restMinus.addEventListener("click", () => adjustRestTimer(-10));
+    restPlus.addEventListener("click", () => adjustRestTimer(10));
+    restStart.addEventListener("click", toggleRestTimer);
+    restReset.addEventListener("click", resetRestTimer);
 
     calendarEl.addEventListener("click", event => {
       const stepButton = event.target.closest("[data-period-step]");
