@@ -1207,6 +1207,7 @@
       const muted = options.muted ? " muted" : "";
       const future = options.future ? " future" : "";
       const hasData = info.count && !options.future ? " has-data" : "";
+      const daysLabel = options.showDays ? `${trainingDays(items)} 天<br>` : "";
       return `
         <div class="calendar-cell${muted}${future}${hasData}" aria-disabled="${options.future ? "true" : "false"}">
           <div class="cell-date">
@@ -1214,7 +1215,7 @@
             <span class="cell-dot"></span>
           </div>
           <div class="cell-body">
-            ${options.future ? "未开始" : info.count ? `${info.count} 动作<br>${info.sets.toLocaleString("zh-CN")} 组` : "无训练"}
+            ${options.future ? "未开始" : info.count ? `${daysLabel}${info.count} 动作<br>${info.sets.toLocaleString("zh-CN")} 组` : "无训练"}
           </div>
         </div>
       `;
@@ -1251,7 +1252,7 @@
     function periodMeta(items, includeDays = false) {
       const summary = summarize(items);
       const base = `${summary.count} 个动作 · ${summary.sets.toLocaleString("zh-CN")} 组`;
-      return includeDays ? `${trainingDays(items)} 个训练日 · ${base}` : base;
+      return includeDays ? `${trainingDays(items)} 天 · ${base}` : base;
     }
 
     function renderCalendar() {
@@ -1328,7 +1329,10 @@
           return date.getFullYear() === base.getFullYear() && date.getMonth() === index;
         });
         const monthStart = toISODate(new Date(base.getFullYear(), index, 1));
-        return calendarCell(`${index + 1} 月`, items, { future: monthStart > todayKey });
+        return calendarCell(`${index + 1} 月`, items, {
+          future: monthStart > todayKey,
+          showDays: true
+        });
       }).join("");
       calendarEl.innerHTML = `
         ${calendarHead(`${base.getFullYear()} 年`, periodMeta(yearItems, true))}
