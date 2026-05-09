@@ -1169,11 +1169,34 @@
       return `${dateFromISO(dateString).getFullYear()} 年`;
     }
 
+    function currentWeekBounds() {
+      const start = addDays(viewDate, -((viewDate.getDay() || 7) - 1));
+      return {
+        start,
+        end: addDays(start, 6)
+      };
+    }
+
+    function recordsForCurrentRange() {
+      if (range === "day") return recordsForDate(viewDate);
+      if (range === "week") {
+        const { start, end } = currentWeekBounds();
+        return records.filter(record => {
+          const date = dateFromISO(record.date);
+          return date >= start && date <= end;
+        });
+      }
+      if (range === "month") {
+        return records.filter(record => {
+          const date = dateFromISO(record.date);
+          return date.getFullYear() === viewDate.getFullYear() && date.getMonth() === viewDate.getMonth();
+        });
+      }
+      return records.filter(record => dateFromISO(record.date).getFullYear() === viewDate.getFullYear());
+    }
+
     function groupKey(record) {
-      if (range === "day") return record.date;
-      if (range === "year") return yearKey(record.date);
-      if (range === "month") return monthKey(record.date);
-      return weekKey(record.date);
+      return record.date;
     }
 
     function volume(record) {
@@ -1320,18 +1343,14 @@
       }
 
       if (range === "week") {
-        const monday = addDays(base, -((base.getDay() || 7) - 1));
+        const { start: monday, end: sunday } = currentWeekBounds();
         const cells = Array.from({ length: 7 }, (_, index) => {
           const date = addDays(monday, index);
           return calendarCell(`${weekdays[index]} ${date.getDate()}`, recordsForDate(date), {
             future: isFutureISODate(toISODate(date))
           });
         }).join("");
-        const sunday = addDays(monday, 6);
-        const weekItems = records.filter(record => {
-          const date = dateFromISO(record.date);
-          return date >= monday && date <= sunday;
-        });
+        const weekItems = recordsForCurrentRange();
         calendarEl.innerHTML = `
           ${calendarHead(weekKey(toISODate(base)), periodMeta(weekItems, true))}
           <div class="calendar-grid week">${cells}</div>
@@ -1351,10 +1370,7 @@
             future: isFutureISODate(toISODate(date))
           });
         }).join("");
-        const monthItems = records.filter(record => {
-          const date = dateFromISO(record.date);
-          return date.getFullYear() === base.getFullYear() && date.getMonth() === base.getMonth();
-        });
+        const monthItems = recordsForCurrentRange();
         calendarEl.innerHTML = `
           ${calendarHead(monthKey(toISODate(base)), periodMeta(monthItems, true))}
           <div class="calendar-grid month">${weekdayLabels}${dayCells}</div>
@@ -1362,7 +1378,7 @@
         return;
       }
 
-      const yearItems = records.filter(record => dateFromISO(record.date).getFullYear() === base.getFullYear());
+      const yearItems = recordsForCurrentRange();
       const months = Array.from({ length: 12 }, (_, index) => {
         const items = records.filter(record => {
           const date = dateFromISO(record.date);
@@ -1393,9 +1409,9 @@
 
       renderCalendar();
 
-      const scopedRecords = range === "day" ? recordsForDate(viewDate) : records;
+      const scopedRecords = recordsForCurrentRange();
       if (scopedRecords.length === 0) {
-        groupsEl.innerHTML = '<div class="empty"><strong>该日期没有训练记录</strong><span>可以切换日期，或在左侧新增训练。</span></div>';
+        groupsEl.innerHTML = '<div class="empty"><strong>当前时间范围没有训练记录</strong><span>可以切换时间，或在左侧新增训练。</span></div>';
         renderMetrics();
         return;
       }
