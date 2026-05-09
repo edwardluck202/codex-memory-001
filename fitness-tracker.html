@@ -1315,7 +1315,7 @@
 
     function groupMeta(items) {
       const summary = summarize(items);
-      return `${trainingDays(items)} 天 · ${summary.count} 个动作 · ${summary.sets.toLocaleString("zh-CN")} 组`;
+      return `${summary.count} 个动作 · ${summary.sets.toLocaleString("zh-CN")} 组`;
     }
 
     function renderCalendar() {
