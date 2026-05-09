@@ -114,6 +114,13 @@
       align-items: start;
     }
 
+    .side {
+      display: grid;
+      gap: 14px;
+      position: sticky;
+      top: 18px;
+    }
+
     .panel {
       border: 1px solid var(--line);
       border-radius: 22px;
@@ -125,8 +132,10 @@
 
     .form-card {
       padding: 20px;
-      position: sticky;
-      top: 18px;
+    }
+
+    .timer-card {
+      padding: 18px;
     }
 
     .panel-title {
@@ -220,11 +229,6 @@
       grid-template-columns: 1fr auto;
       gap: 12px;
       align-items: center;
-      margin: 4px 0 14px;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 15px;
-      background: rgba(255, 255, 255, 0.58);
     }
 
     .rest-label {
@@ -720,7 +724,7 @@
         grid-template-columns: 1fr;
       }
 
-      .form-card {
+      .side {
         position: static;
       }
 
@@ -845,65 +849,75 @@
     </header>
 
     <div class="layout">
-      <section class="panel form-card">
-        <div class="panel-title">
-          <h2>新增训练</h2>
-          <div class="hint">本地自动保存</div>
-        </div>
-
-        <form id="workoutForm">
-          <div class="field">
-            <label for="date">日期</label>
-            <input id="date" type="date" required>
+      <div class="side">
+        <section class="panel form-card">
+          <div class="panel-title">
+            <h2>新增训练</h2>
+            <div class="hint">本地自动保存</div>
           </div>
 
-          <div class="grid-2">
+          <form id="workoutForm">
             <div class="field">
-              <label for="part">健身部位</label>
-              <select id="part" required>
-                <option value="胸">胸</option>
-                <option value="背">背</option>
-                <option value="肩">肩</option>
-                <option value="腿">腿</option>
-                <option value="手臂">手臂</option>
-                <option value="核心">核心</option>
-                <option value="有氧">有氧</option>
-                <option value="其他">其他</option>
-              </select>
+              <label for="date">日期</label>
+              <input id="date" type="date" required>
             </div>
 
-            <div class="field">
-              <label for="exercise">动作</label>
-              <input id="exercise" list="exerciseList" required>
-              <datalist id="exerciseList">
-                <option value="杠铃卧推"></option>
-                <option value="哑铃卧推"></option>
-                <option value="深蹲"></option>
-                <option value="硬拉"></option>
-                <option value="引体向上"></option>
-                <option value="坐姿划船"></option>
-                <option value="肩推"></option>
-                <option value="二头弯举"></option>
-              </datalist>
-            </div>
-          </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="part">健身部位</label>
+                <select id="part" required>
+                  <option value="胸">胸</option>
+                  <option value="背">背</option>
+                  <option value="肩">肩</option>
+                  <option value="腿">腿</option>
+                  <option value="手臂">手臂</option>
+                  <option value="核心">核心</option>
+                  <option value="有氧">有氧</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
 
-          <div class="grid-3">
-            <div class="field">
-              <label for="sets">组数</label>
-              <input id="sets" type="number" min="1" step="1" value="4" required>
+              <div class="field">
+                <label for="exercise">动作</label>
+                <input id="exercise" list="exerciseList" required>
+                <datalist id="exerciseList">
+                  <option value="杠铃卧推"></option>
+                  <option value="哑铃卧推"></option>
+                  <option value="深蹲"></option>
+                  <option value="硬拉"></option>
+                  <option value="引体向上"></option>
+                  <option value="坐姿划船"></option>
+                  <option value="肩推"></option>
+                  <option value="二头弯举"></option>
+                </datalist>
+              </div>
             </div>
-            <div class="field">
-              <label for="reps">每组次数</label>
-              <input id="reps" type="number" min="1" step="1" value="10" required>
-            </div>
-            <div class="field">
-              <label for="weight">重量 kg</label>
-              <input id="weight" type="number" min="0" step="0.5" value="20" required>
-            </div>
-          </div>
 
-          <div class="rest-timer" aria-label="休息倒计时器">
+            <div class="grid-3">
+              <div class="field">
+                <label for="sets">组数</label>
+                <input id="sets" type="number" min="1" step="1" value="4" required>
+              </div>
+              <div class="field">
+                <label for="reps">每组次数</label>
+                <input id="reps" type="number" min="1" step="1" value="10" required>
+              </div>
+              <div class="field">
+                <label for="weight">重量 kg</label>
+                <input id="weight" type="number" min="0" step="0.5" value="20" required>
+              </div>
+            </div>
+
+            <button class="submit" type="submit">保存记录</button>
+            <div class="save-note" aria-live="polite">
+              <span>数据仅保存在当前浏览器</span>
+              <span id="saveStatus">待记录</span>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel timer-card" aria-label="休息倒计时器">
+          <div class="rest-timer">
             <div>
               <div class="rest-label">休息倒计时</div>
               <div class="rest-time" id="restTime">01:00</div>
@@ -915,14 +929,8 @@
               <button class="timer-btn" id="restReset" type="button">重新计时</button>
             </div>
           </div>
-
-          <button class="submit" type="submit">保存记录</button>
-          <div class="save-note" aria-live="polite">
-            <span>数据仅保存在当前浏览器</span>
-            <span id="saveStatus">待记录</span>
-          </div>
-        </form>
-      </section>
+        </section>
+      </div>
 
       <div class="content">
         <section class="summary">
