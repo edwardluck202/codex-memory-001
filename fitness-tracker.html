@@ -602,6 +602,13 @@
       gap: 12px;
     }
 
+    .groups.scrollable {
+      max-height: 620px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-right: 2px;
+    }
+
     .group {
       border: 1px solid var(--line);
       border-radius: 18px;
@@ -655,6 +662,18 @@
       border: 0;
       border-top: 1px solid rgba(0, 0, 0, 0.055);
       background: rgba(255, 255, 255, 0.5);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .groups-more {
+      width: 100%;
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.58);
       color: var(--blue);
       font-size: 13px;
       font-weight: 850;
@@ -1050,8 +1069,10 @@
     let restRemaining = restDuration;
     let restTimerId = null;
     const groupDisplayLimit = 10;
+    const dayGroupDisplayLimit = 5;
     const expandedRecordLists = new Set();
     const openGroups = new Set();
+    const expandedDayGroupRanges = new Set();
 
     document.getElementById("today").textContent = new Intl.DateTimeFormat("zh-CN", {
       month: "long",
@@ -1402,6 +1423,7 @@
 
       if (records.length === 0) {
         calendarEl.innerHTML = "";
+        groupsEl.classList.remove("scrollable");
         groupsEl.innerHTML = '<div class="empty"><strong>还没有训练记录</strong><span>填写左侧表单后，历史和统计会自动更新。</span></div>';
         renderMetrics();
         return;
@@ -1411,6 +1433,7 @@
 
       const scopedRecords = recordsForCurrentRange();
       if (scopedRecords.length === 0) {
+        groupsEl.classList.remove("scrollable");
         groupsEl.innerHTML = '<div class="empty"><strong>当前时间范围没有训练记录</strong><span>可以切换时间，或在左侧新增训练。</span></div>';
         renderMetrics();
         return;
@@ -1424,8 +1447,18 @@
         grouped.get(key).push(record);
       }
 
+      const groupEntries = [...grouped.entries()];
+      const rangeStateKey = `${range}:${toISODate(viewDate)}`;
+      const canLimitDayGroups = range !== "day" && groupEntries.length > dayGroupDisplayLimit;
+      const areDayGroupsExpanded = expandedDayGroupRanges.has(rangeStateKey);
+      const visibleGroups = canLimitDayGroups && !areDayGroupsExpanded
+        ? groupEntries.slice(0, dayGroupDisplayLimit)
+        : groupEntries;
+      const hiddenDayGroupCount = Math.max(0, groupEntries.length - dayGroupDisplayLimit);
+      groupsEl.classList.toggle("scrollable", canLimitDayGroups && areDayGroupsExpanded);
+
       let groupIndex = 0;
-      for (const [key, items] of grouped) {
+      for (const [key, items] of visibleGroups) {
         const groupStateKey = `${range}:${key}:${groupIndex}`;
         const group = document.createElement("article");
         group.className = "group";
@@ -1478,6 +1511,15 @@
 
         groupsEl.appendChild(group);
         groupIndex += 1;
+      }
+
+      if (canLimitDayGroups) {
+        const groupsMore = document.createElement("button");
+        groupsMore.className = "groups-more";
+        groupsMore.dataset.rangeKey = rangeStateKey;
+        groupsMore.type = "button";
+        groupsMore.textContent = areDayGroupsExpanded ? "收起记录" : `展开全部，剩余 ${hiddenDayGroupCount} 条`;
+        groupsEl.appendChild(groupsMore);
       }
 
       renderMetrics();
@@ -1565,6 +1607,18 @@
     });
 
     groupsEl.addEventListener("click", event => {
+      const groupsMoreButton = event.target.closest(".groups-more");
+      if (groupsMoreButton) {
+        const key = groupsMoreButton.dataset.rangeKey;
+        if (expandedDayGroupRanges.has(key)) {
+          expandedDayGroupRanges.delete(key);
+        } else {
+          expandedDayGroupRanges.add(key);
+        }
+        renderHistory();
+        return;
+      }
+
       const toggleHead = event.target.closest("[data-toggle-group]");
       if (toggleHead) {
         const key = toggleHead.dataset.toggleGroup;
