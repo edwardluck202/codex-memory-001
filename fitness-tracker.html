@@ -135,7 +135,8 @@
     }
 
     .timer-card {
-      padding: 18px;
+      min-height: 116px;
+      padding: 20px;
     }
 
     .panel-title {
@@ -226,20 +227,19 @@
 
     .rest-timer {
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: center;
+      gap: 16px;
+      height: 100%;
     }
 
     .rest-label {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 750;
     }
 
     .rest-time {
-      margin-top: 4px;
-      font-size: 25px;
+      margin-top: 6px;
+      font-size: 34px;
       font-weight: 850;
       font-variant-numeric: tabular-nums;
       line-height: 1;
@@ -248,27 +248,31 @@
     .timer-actions {
       display: flex;
       flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 7px;
+      gap: 9px;
     }
 
     .timer-btn {
-      min-width: 44px;
-      height: 34px;
+      min-width: 58px;
+      height: 42px;
       border: 1px solid var(--line);
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.78);
       color: var(--ink);
-      padding: 0 11px;
-      font-size: 12px;
+      padding: 0 14px;
+      font-size: 14px;
       font-weight: 850;
       cursor: pointer;
     }
 
     .timer-btn.primary {
+      min-width: 74px;
       border-color: rgba(0, 122, 255, 0.26);
       background: rgba(0, 122, 255, 0.1);
       color: var(--blue);
+    }
+
+    .timer-btn.reset {
+      min-width: 96px;
     }
 
     .submit {
@@ -926,7 +930,7 @@
               <button class="timer-btn" id="restMinus" type="button">-10s</button>
               <button class="timer-btn" id="restPlus" type="button">+10s</button>
               <button class="timer-btn primary" id="restStart" type="button">开始</button>
-              <button class="timer-btn" id="restReset" type="button">重新计时</button>
+              <button class="timer-btn reset" id="restReset" type="button">重新计时</button>
             </div>
           </div>
         </section>
