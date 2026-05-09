@@ -745,7 +745,7 @@
 
             <div class="field">
               <label for="exercise">动作</label>
-              <input id="exercise" list="exerciseList" placeholder="卧推 / 深蹲" required>
+              <input id="exercise" list="exerciseList" required>
               <datalist id="exerciseList">
                 <option value="杠铃卧推"></option>
                 <option value="哑铃卧推"></option>
@@ -787,22 +787,22 @@
           <div class="metric">
             <small>训练次数</small>
             <strong id="metricSessions">0</strong>
-            <em>按训练日期统计</em>
+            <em>今日记录条数</em>
           </div>
           <div class="metric">
-            <small>动作数量</small>
+            <small>当日组数</small>
             <strong id="metricExercises">0</strong>
-            <em>去重后的动作名</em>
+            <em>今日所有组数合计</em>
           </div>
           <div class="metric">
-            <small>总训练量 kg</small>
+            <small>当日训练量 kg</small>
             <strong id="metricVolume">0</strong>
             <em>组数 × 次数 × 重量</em>
           </div>
           <div class="metric">
-            <small>最高单组 kg</small>
+            <small>当日最高单组 kg</small>
             <strong id="metricMax">0</strong>
-            <em>单次记录最高重量</em>
+            <em>今日记录最高重量</em>
           </div>
         </section>
 
@@ -839,6 +839,7 @@
     const saveStatus = document.getElementById("saveStatus");
     const submitButton = form.querySelector(".submit");
     const today = new Date();
+    const todayKey = toISODate(today);
 
     let records = JSON.parse(localStorage.getItem(storeKey) || "[]");
     let range = "day";
@@ -849,7 +850,8 @@
       weekday: "long"
     }).format(today);
 
-    dateEl.value = toISODate(today);
+    dateEl.max = todayKey;
+    dateEl.value = todayKey;
 
     function toISODate(date) {
       const offset = date.getTimezoneOffset() * 60000;
@@ -903,14 +905,21 @@
       return Number(record.sets) * Number(record.reps) * Number(record.weight);
     }
 
-    function renderMetrics() {
-      const sessionDates = new Set(records.map(record => record.date));
-      const exercises = new Set(records.map(record => record.exercise.trim()));
-      const totalVolume = records.reduce((sum, record) => sum + volume(record), 0);
-      const maxWeight = records.reduce((max, record) => Math.max(max, Number(record.weight)), 0);
+    function totalSets(items) {
+      return items.reduce((sum, item) => sum + Number(item.sets), 0);
+    }
 
-      document.getElementById("metricSessions").textContent = sessionDates.size;
-      document.getElementById("metricExercises").textContent = exercises.size;
+    function recordsForISODate(dateString) {
+      return records.filter(record => record.date === dateString);
+    }
+
+    function renderMetrics() {
+      const todayRecords = recordsForISODate(todayKey);
+      const totalVolume = todayRecords.reduce((sum, record) => sum + volume(record), 0);
+      const maxWeight = todayRecords.reduce((max, record) => Math.max(max, Number(record.weight)), 0);
+
+      document.getElementById("metricSessions").textContent = todayRecords.length;
+      document.getElementById("metricExercises").textContent = totalSets(todayRecords);
       document.getElementById("metricVolume").textContent = Math.round(totalVolume).toLocaleString("zh-CN");
       document.getElementById("metricMax").textContent = maxWeight.toLocaleString("zh-CN");
     }
@@ -918,6 +927,7 @@
     function summarize(items) {
       return {
         count: items.length,
+        sets: totalSets(items),
         volume: items.reduce((sum, item) => sum + volume(item), 0),
         parts: [...new Set(items.map(item => item.part))]
       };
@@ -1065,7 +1075,7 @@
               <div class="detail">${item.date} · ${item.sets} 组 × ${item.reps} 次 × ${item.weight} kg</div>
             </div>
             <div>
-              <div class="volume">${Math.round(volume(item)).toLocaleString("zh-CN")} kg</div>
+              <div class="volume">${totalSets(recordsForISODate(item.date)).toLocaleString("zh-CN")} 组</div>
               <button class="delete" data-id="${item.id}" type="button">删除</button>
             </div>
           `;
@@ -1090,6 +1100,12 @@
 
     form.addEventListener("submit", event => {
       event.preventDefault();
+      if (dateEl.value > todayKey) {
+        dateEl.value = todayKey;
+        saveStatus.textContent = "日期不能晚于今天";
+        dateEl.focus();
+        return;
+      }
       const record = {
         id: crypto.randomUUID(),
         date: dateEl.value,
@@ -1114,6 +1130,13 @@
         submitButton.textContent = "保存记录";
       }, 1200);
       renderHistory();
+    });
+
+    dateEl.addEventListener("change", () => {
+      if (dateEl.value > todayKey) {
+        dateEl.value = todayKey;
+        saveStatus.textContent = "日期不能晚于今天";
+      }
     });
 
     tabs.forEach(tab => {
